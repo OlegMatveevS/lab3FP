@@ -190,22 +190,6 @@ generate_function(quadratic, PointsList, FuncMap) ->
 
 transport_message(Pid, Message) -> gen_server:cast(Pid, Message).
   ```
-
-
-  + __отображение (map)__
-  ```erlang
-  btree_map(Fun, {Key, L, R, H}) ->
-  map(Fun, {Key, L, R, H}).
-map(Fun, {Key, L, R, _H}) ->
-  Node3 = insert_bt({}, Fun(Key)),
-  map(Fun, L, Node3),
-  map(Fun, R, Node3).
-map(_, {}, {W, L, R, H}) -> {W, L, R, H};
-map(Fun, {Key, L, R, _H}, {Key2, L2, R2, H2}) ->
-  Node2 = map(Fun, L, {Key2, L2, R2, H2}),
-  Node3 = insert_bt(Node2, Fun(Key)),
-  map(Fun, R, Node3).
-  ```
   
    + __Добавление точек__
   ```erlang
