@@ -18,4 +18,8 @@ jobs:
       - name: Format
         working-directory: ${{github.workspace}}/lab3
         run: rebar3 format
+        
+      - name: Compile
+        working-directory: ${{github.workspace}}/lab3
+        run: rebar3 compile  
 
