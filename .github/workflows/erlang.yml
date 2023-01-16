@@ -1,0 +1,21 @@
+name: Erlang CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+env:
+  ERL_AFLAGS: "-enable-feature all"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: erlang:25
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Format
+        working-directory: ${{github.workspace}}/task_5
+        run: rebar3 format
+
