@@ -32,13 +32,13 @@ __Лабораторная работа №3__
 
 -behaviour(supervisor).
 
--export([start_link/2, init/1]).
+-export([start_link/1, init/1]).
 
-start_link(Mode, Delta) ->
-  {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, [Mode, Delta]),
+start_link(Delta) ->
+  {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, [Delta]),
   unlink(Pid).
 
-init([Mode, Delta]) ->
+init([Delta]) ->
   InputReader = #{id => input_reader,
     start => {input_reader, start_link, []},
     restart => permanent,
@@ -46,17 +46,23 @@ init([Mode, Delta]) ->
     type => worker,
     modules => [input_reader]},
   InputReaderWorker = #{id => input_reader_worker,
-    start => {input_reader, input_reader_worker, []},
+    start => {input_reader, input_type_worker, []},
     restart => permanent,
     shutdown => 2000,
     type => worker,
     modules => [input_reader]},
-  FunctionGenWorker = #{id => function_generator,
-    start => {function_generator, start_link, [Mode]},
+  FunctionGenWorkerFirst = #{id => linear_generator,
+    start => {linear_generator, start_link, [linear]},
     restart => permanent,
     shutdown => 2000,
     type => worker,
-    modules => [function_generator]},
+    modules => [linear_generator]},
+  FunctionGenWorkerSecond = #{id => quadratic_generator,
+    start => {quadratic_generator, start_link, [quadratic]},
+    restart => permanent,
+    shutdown => 2000,
+    type => worker,
+    modules => [quadratic_generator]},
   PointsGenWorker = #{id => points_generator,
     start => {points_generator, start_link, [Delta]},
     restart => permanent,
@@ -72,25 +78,39 @@ init([Mode, Delta]) ->
   {ok, {#{strategy => one_for_all,
     intensity => 5,
     period => 30},
-    [InputReader, FunctionGenWorker, PointsGenWorker, MathLoggerWorker, InputReaderWorker]}
+    [InputReader, FunctionGenWorkerFirst, FunctionGenWorkerSecond, PointsGenWorker, MathLoggerWorker, InputReaderWorker]}
   }.
   ```
   
   + __Чтение ввода данных__
   ``` erlang
+-module(input_reader).
+
+-behaviour(gen_server).
+
+-export([start_link/0, new_point/4]).
+-export([init/1, handle_call/3, handle_cast/2, input_type_worker/0]).
+
+
+-define(SERVER, ?MODULE).
+
 start_link() ->
   {ok, _} = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-new_point(Pid, X, Y) -> transport_message(Pid, {X, Y}).
+new_point(Pid, X, Y, Line) -> transport_message(Pid, {X, Y, Line}).
 
-init([]) ->
+init(_) ->
   io:fwrite("input_reader has started!~n"),
   {ok, []}.
 
 handle_call(_, _, _) -> throw("input_reader doesn't support call~n").
 
-handle_cast({X, Y}, []) ->
-  function_generator:add_point(function_generator, X, Y),
+handle_cast({X, Y, Line}, []) ->
+  case (Line) of
+    "linear" -> linear_generator:add_point(linear_generator, X, Y);
+    "quadratic" -> quadratic_generator:add_point(quadratic_generator, X, Y);
+    "all" -> linear_generator:add_point(linear_generator, X, Y), quadratic_generator:add_point(quadratic_generator, X, Y)
+end,
   {noreply, []}.
 
 transport_message(Pid, Message) -> gen_server:cast(Pid, Message).
@@ -109,12 +129,17 @@ get_x_y() ->
       end
   end.
 
-input_reader_worker() ->
+input_type_worker() ->
+  Line = io:get_line("Type> "),
+  StrippedLine = string:strip(string:strip(Line, both, 13), both, 10),
+  input_reader_worker(StrippedLine).
+
+input_reader_worker(Type) ->
   case get_x_y() of
     eof -> {ok, self()};
     {X, Y} ->
-      new_point(input_reader, X, Y),
-      input_reader_worker()
+      new_point(input_reader, X, Y, Type),
+      input_reader_worker(Type)
   end.
   ```
   
