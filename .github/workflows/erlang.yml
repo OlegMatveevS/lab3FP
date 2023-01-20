@@ -2,9 +2,9 @@ name: Erlang CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 env:
   ERL_AFLAGS: "-enable-feature all"
 jobs:
@@ -14,8 +14,8 @@ jobs:
       image: erlang:25
     steps:
       - uses: actions/checkout@v3
-
-      - name: Format
-        working-directory: ${{github.workspace}}/
-        run: rebar3 format
+        
+      - name: Compile
+        working-directory: ${{github.workspace}}/lab3
+        run: rebar3 compile  
 
