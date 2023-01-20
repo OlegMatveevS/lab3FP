@@ -2,13 +2,13 @@
 
 -behaviour(supervisor).
 
--export([start_link/2, init/1]).
+-export([start_link/1, init/1]).
 
-start_link(Mode, Delta) ->
-  {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, [Mode, Delta]),
+start_link(Delta) ->
+  {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, [Delta]),
   unlink(Pid).
 
-init([Mode, Delta]) ->
+init([Delta]) ->
   InputReader = #{id => input_reader,
     start => {input_reader, start_link, []},
     restart => permanent,
@@ -16,17 +16,23 @@ init([Mode, Delta]) ->
     type => worker,
     modules => [input_reader]},
   InputReaderWorker = #{id => input_reader_worker,
-    start => {input_reader, input_reader_worker, []},
+    start => {input_reader, input_type_worker, []},
     restart => permanent,
     shutdown => 2000,
     type => worker,
     modules => [input_reader]},
-  FunctionGenWorker = #{id => function_generator,
-    start => {function_generator, start_link, [Mode]},
+  FunctionGenWorkerFirst = #{id => linear_generator,
+    start => {linear_generator, start_link, [linear]},
     restart => permanent,
     shutdown => 2000,
     type => worker,
-    modules => [function_generator]},
+    modules => [linear_generator]},
+  FunctionGenWorkerSecond = #{id => quadratic_generator,
+    start => {quadratic_generator, start_link, [quadratic]},
+    restart => permanent,
+    shutdown => 2000,
+    type => worker,
+    modules => [quadratic_generator]},
   PointsGenWorker = #{id => points_generator,
     start => {points_generator, start_link, [Delta]},
     restart => permanent,
@@ -42,5 +48,5 @@ init([Mode, Delta]) ->
   {ok, {#{strategy => one_for_all,
     intensity => 5,
     period => 30},
-    [InputReader, FunctionGenWorker, PointsGenWorker, MathLoggerWorker, InputReaderWorker]}
+    [InputReader, FunctionGenWorkerFirst, FunctionGenWorkerSecond, PointsGenWorker, MathLoggerWorker, InputReaderWorker]}
   }.

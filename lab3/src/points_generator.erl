@@ -31,6 +31,7 @@ handle_call({{X1, X2}, Func}, _, #state{delta = Delta}) ->
 
 handle_cast(_, _) -> throw("points_generator doesn't support gen_server casts").
 
+
 transport_message(Pid, Message) -> gen_server:call(Pid, Message).
 
 
