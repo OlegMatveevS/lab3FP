@@ -1,6 +1,6 @@
 -module(linear_generator).
 -behaviour(gen_server).
--export([start_link/0, add_point/3]).
+-export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2]).
 
 -define(SERVER, ?MODULE).
@@ -10,13 +10,11 @@
 start_link() ->
   {ok, _} = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-add_point(Pid, X, Y) -> transport_message(Pid, {add_point, X, Y}).
-
 init(_) ->
   io:fwrite("linear has started!~n"),
   {ok, #state{}}.
 
-handle_cast({add_point, X, Y}, #state{} = State) -> handle_point(X, Y, 2, State).
+handle_cast({X, Y}, #state{} = State) -> handle_point(X, Y, 2, State).
 
 handle_call(_, _, _) -> throw("function generator doesn't support gen_server calls").
 
@@ -45,8 +43,7 @@ generate_function(PointsList, FuncMap) ->
   A1 = (Y2 - Y1) / (X2 - X1),
   A0 = Y1 - A1 * X1,
   Func = fun(X) -> A0 + A1 * X end,
-  points_generator:send_new_function(points_generator, X1, X2, Func),
+  gen_server:call(points_generator, {X1, X2, Func}),
   maps:put({X1, X2}, Func, FuncMap).
 
 
-transport_message(Pid, Message) -> gen_server:cast(Pid, Message).

@@ -20,8 +20,8 @@ init(_) ->
 handle_call(_, _, _) -> throw("input_reader doesn't support call~n").
 
 handle_cast({X, Y}, []) ->
-    linear_generator:add_point(linear_generator, X, Y),
-    quadratic_generator:add_point(quadratic_generator, X, Y),
+    gen_server:cast(linear_generator, {X, Y}),
+    gen_server:cast(quadratic_generator, {X, Y}),
   {noreply, []}.
 
 transport_message(Pid, Message) -> gen_server:cast(Pid, Message).
